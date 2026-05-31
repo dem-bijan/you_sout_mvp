@@ -1,0 +1,14 @@
+{
+  "name": "youscout-gateway",
+  "version": "1.0.0",
+  "description": "API Gateway for YouScout MVP",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "fastify": "^4.26.2",
+    "fastify-http-proxy": "^6.2.0",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
