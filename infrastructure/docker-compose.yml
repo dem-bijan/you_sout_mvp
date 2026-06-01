@@ -1,0 +1,314 @@
+version: '3.9'
+
+networks:
+  youscout-network:
+    driver: bridge
+
+volumes:
+  postgres-users-data:
+  postgres-videos-data:
+  postgres-comments-data:
+  postgres-social-data:
+  postgres-notifications-data:
+  redis-data:
+  minio-data:
+  mongodb-data:
+  kafka-data:
+
+services:
+
+  # ─── INFRASTRUCTURE ───────────────────────────────────────
+
+  postgres-users:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: youscout_users
+      POSTGRES_USER: youscout
+      POSTGRES_PASSWORD: youscout_secret
+    volumes:
+      - postgres-users-data:/var/lib/postgresql/data
+    networks: [youscout-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U youscout -d youscout_users"]
+      interval: 10s
+      retries: 5
+
+  postgres-videos:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: youscout_videos
+      POSTGRES_USER: youscout
+      POSTGRES_PASSWORD: youscout_secret
+    volumes:
+      - postgres-videos-data:/var/lib/postgresql/data
+    networks: [youscout-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U youscout -d youscout_videos"]
+      interval: 10s
+      retries: 5
+
+  postgres-comments:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: youscout_comments
+      POSTGRES_USER: youscout
+      POSTGRES_PASSWORD: youscout_secret
+    volumes:
+      - postgres-comments-data:/var/lib/postgresql/data
+    networks: [youscout-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U youscout -d youscout_comments"]
+      interval: 10s
+      retries: 5
+
+  postgres-social:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: youscout_social
+      POSTGRES_USER: youscout
+      POSTGRES_PASSWORD: youscout_secret
+    volumes:
+      - postgres-social-data:/var/lib/postgresql/data
+    networks: [youscout-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U youscout -d youscout_social"]
+      interval: 10s
+      retries: 5
+
+  postgres-notifications:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: youscout_notifications
+      POSTGRES_USER: youscout
+      POSTGRES_PASSWORD: youscout_secret
+    volumes:
+      - postgres-notifications-data:/var/lib/postgresql/data
+    networks: [youscout-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U youscout -d youscout_notifications"]
+      interval: 10s
+      retries: 5
+
+  redis:
+    image: redis:7.2-alpine
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks: [youscout-network]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+
+  mongodb:
+    image: mongo:7.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: youscout
+      MONGO_INITDB_ROOT_PASSWORD: youscout_secret
+      MONGO_INITDB_DATABASE: youscout_chat
+    volumes:
+      - mongodb-data:/data/db
+    networks: [youscout-network]
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: youscout_minio
+      MINIO_ROOT_PASSWORD: youscout_minio_secret
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks: [youscout-network]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks: [youscout-network]
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on: [zookeeper]
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks: [youscout-network]
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 15s
+      retries: 5
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command: >
+      bash -c "
+      kafka-topics --create --bootstrap-server kafka:9092 --topic youscout.video.published --partitions 3 --replication-factor 1 --if-not-exists &&
+      kafka-topics --create --bootstrap-server kafka:9092 --topic youscout.comment.created --partitions 3 --replication-factor 1 --if-not-exists &&
+      kafka-topics --create --bootstrap-server kafka:9092 --topic youscout.video.liked     --partitions 3 --replication-factor 1 --if-not-exists &&
+      kafka-topics --create --bootstrap-server kafka:9092 --topic youscout.user.followed   --partitions 3 --replication-factor 1 --if-not-exists &&
+      kafka-topics --create --bootstrap-server kafka:9092 --topic youscout.video.reported  --partitions 1 --replication-factor 1 --if-not-exists &&
+      kafka-topics --create --bootstrap-server kafka:9092 --topic youscout.video.published.DLT --partitions 1 --replication-factor 1 --if-not-exists &&
+      kafka-topics --create --bootstrap-server kafka:9092 --topic youscout.comment.created.DLT --partitions 1 --replication-factor 1 --if-not-exists &&
+      echo 'Topics created successfully'
+      "
+    networks: [youscout-network]
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9411:9411"
+    networks: [youscout-network]
+
+  # ─── APPLICATION SERVICES ─────────────────────────────────
+
+  eureka-server:
+    build: ../services/eureka-server
+    ports:
+      - "8761:8761"
+    networks: [youscout-network]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 15s
+      retries: 5
+
+  api-gateway:
+    build: ../services/api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks: [youscout-network]
+
+  user-service:
+    build: ../services/user-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-users:5432/youscout_users
+      SPRING_DATASOURCE_USERNAME: youscout
+      SPRING_DATASOURCE_PASSWORD: youscout_secret
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+    depends_on:
+      postgres-users:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks: [youscout-network]
+
+  video-service:
+    build: ../services/video-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-videos:5432/youscout_videos
+      SPRING_DATASOURCE_USERNAME: youscout
+      SPRING_DATASOURCE_PASSWORD: youscout_secret
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: youscout_minio
+      MINIO_SECRET_KEY: youscout_minio_secret
+      MINIO_BUCKET: youscout-videos
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+    depends_on:
+      postgres-videos:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks: [youscout-network]
+
+  feed-service:
+    build: ../services/feed-service
+    environment:
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      USER_SERVICE_URL: http://user-service:8081
+      VIDEO_SERVICE_URL: http://video-service:8082
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks: [youscout-network]
+
+  comment-service:
+    build: ../services/comment-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-comments:5432/youscout_comments
+      SPRING_DATASOURCE_USERNAME: youscout
+      SPRING_DATASOURCE_PASSWORD: youscout_secret
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+    depends_on:
+      postgres-comments:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks: [youscout-network]
+
+  social-service:
+    build: ../services/social-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-social:5432/youscout_social
+      SPRING_DATASOURCE_USERNAME: youscout
+      SPRING_DATASOURCE_PASSWORD: youscout_secret
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      USER_SERVICE_URL: http://user-service:8081
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+    depends_on:
+      postgres-social:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks: [youscout-network]
+
+  notification-service:
+    build: ../services/notification-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-notifications:5432/youscout_notifications
+      SPRING_DATASOURCE_USERNAME: youscout
+      SPRING_DATASOURCE_PASSWORD: youscout_secret
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+    depends_on:
+      postgres-notifications:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks: [youscout-network]
