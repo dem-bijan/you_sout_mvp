@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
+import 'core/router/app_router.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Lock to portrait mode for the vertical video feed experience
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   // Transparent status bar over the dark background
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -22,28 +21,18 @@ void main() {
   runApp(const ProviderScope(child: YouScoutApp()));
 }
 
-class YouScoutApp extends StatelessWidget {
+class YouScoutApp extends ConsumerWidget {
   const YouScoutApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+
+    return MaterialApp.router(
       title: 'YouScout',
       debugShowCheckedModeBanner: false,
       theme: darkTheme,
-      // GoRouter will be added once app_router.dart is created
-      home: const Scaffold(
-        body: Center(
-          child: Text(
-            'YouScout',
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF00D4FF),
-            ),
-          ),
-        ),
-      ),
+      routerConfig: router,
     );
   }
 }
