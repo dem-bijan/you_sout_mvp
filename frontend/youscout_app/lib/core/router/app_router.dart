@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/register_screen.dart';
+import '../../features/auth/presentation/screens/splash_screen.dart';
+import '../../features/auth/presentation/screens/onboarding_screen.dart';
+import '../../features/feed/presentation/screens/home_screen.dart';
+import '../../features/upload/presentation/screens/upload_screen.dart';
+import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/notifications/presentation/screens/notifications_screen.dart';
+import '../../features/discover/presentation/screens/discover_screen.dart';
+import '../../shared/widgets/bottom_nav_bar.dart';
 
 // ── Route names (use these everywhere instead of bare strings) ───────────────
 
@@ -19,10 +29,19 @@ abstract final class Routes {
   static String profilePath(String userId) => '/profile/$userId';
 }
 
+// ── Tab index helper ─────────────────────────────────────────────────────────
+
+int _tabIndex(String location) {
+  if (location.startsWith('/home'))          return 0;
+  if (location.startsWith('/discover'))      return 1;
+  if (location.startsWith('/notifications')) return 3;
+  if (location.startsWith('/profile'))       return 4;
+  return 0;
+}
+
 // ── Router Provider ──────────────────────────────────────────────────────────
 
 final routerProvider = Provider<GoRouter>((ref) {
-  // Listen to auth changes so GoRouter auto-redirects
   final authListenable = _AuthStateListenable(ref);
 
   return GoRouter(
@@ -31,7 +50,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final authState = ref.read(authProvider);
 
-      // Still loading — show splash, don't redirect yet
       if (authState is AsyncLoading) {
         return Routes.splash;
       }
@@ -43,57 +61,65 @@ final routerProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == Routes.onboarding ||
           state.matchedLocation == Routes.splash;
 
-      // Not logged in and trying to access protected page → login
-      if (!isAuthenticated && !isOnAuthPage) {
-        return Routes.login;
-      }
-
-      // Logged in and on auth page → go to feed
-      if (isAuthenticated && isOnAuthPage) {
-        return Routes.home;
-      }
-
-      return null; // no redirect
+      if (!isAuthenticated && !isOnAuthPage) return Routes.login;
+      if (isAuthenticated && isOnAuthPage) return Routes.home;
+      return null;
     },
     routes: [
+      // ── Auth routes (no bottom nav) ────────────────────────────────────
       GoRoute(
         path: Routes.splash,
-        builder: (_, __) => const _SplashPlaceholder(),
+        builder: (_, __) => const SplashScreen(),
       ),
       GoRoute(
         path: Routes.onboarding,
-        builder: (_, __) => const _Placeholder('Onboarding'),
+        builder: (_, __) => const OnboardingScreen(),
       ),
       GoRoute(
         path: Routes.login,
-        builder: (_, __) => const _Placeholder('Login'),
+        builder: (_, __) => const LoginScreen(),
       ),
       GoRoute(
         path: Routes.register,
-        builder: (_, __) => const _Placeholder('Register'),
+        builder: (_, __) => const RegisterScreen(),
       ),
-      GoRoute(
-        path: Routes.home,
-        builder: (_, __) => const _Placeholder('Feed'),
-      ),
-      GoRoute(
-        path: Routes.profile,
-        builder: (context, state) {
-          final userId = state.pathParameters['userId']!;
-          return _Placeholder('Profile: $userId');
-        },
-      ),
+
+      // ── Upload (push-only, no bottom nav) ──────────────────────────────
       GoRoute(
         path: Routes.upload,
-        builder: (_, __) => const _Placeholder('Upload'),
+        builder: (_, __) => const UploadScreen(),
       ),
-      GoRoute(
-        path: Routes.notifications,
-        builder: (_, __) => const _Placeholder('Notifications'),
-      ),
-      GoRoute(
-        path: Routes.discover,
-        builder: (_, __) => const _Placeholder('Discover'),
+
+      // ── Shell route — pages that show the bottom nav bar ───────────────
+      ShellRoute(
+        builder: (context, state, child) {
+          final index = _tabIndex(state.matchedLocation);
+          return Scaffold(
+            body: child,
+            bottomNavigationBar: BottomNavBar(currentIndex: index),
+          );
+        },
+        routes: [
+          GoRoute(
+            path: Routes.home,
+            builder: (_, __) => const HomeScreen(),
+          ),
+          GoRoute(
+            path: Routes.discover,
+            builder: (_, __) => const DiscoverScreen(),
+          ),
+          GoRoute(
+            path: Routes.notifications,
+            builder: (_, __) => const NotificationsScreen(),
+          ),
+          GoRoute(
+            path: Routes.profile,
+            builder: (context, state) {
+              final userId = state.pathParameters['userId']!;
+              return ProfileScreen(userId: userId);
+            },
+          ),
+        ],
       ),
     ],
   );
@@ -107,7 +133,7 @@ class _AuthStateListenable extends ChangeNotifier {
   }
 }
 
-// ── Temporary placeholders (replaced as real screens are built) ──────────────
+// ── Temporary placeholders ───────────────────────────────────────────────────
 
 class _SplashPlaceholder extends StatelessWidget {
   const _SplashPlaceholder();
