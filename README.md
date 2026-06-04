@@ -57,8 +57,8 @@
 ### 1. Cloner le dépôt
 
 ```bash
-git clone https://github.com/<votre-org>/you_sout_mvp.git
-cd you_sout_mvp
+git clone https://github.com/<votre-org>/you_scout_mvp.git
+cd you_scout_mvp
 ```
 
 ### 2. Générer les clés RSA
