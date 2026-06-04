@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../storage/secure_storage.dart';
+import 'package:youscout_app/core/storage/secure_storage.dart';
 
 /// Intercepts every request to attach the Bearer token,
 /// and retries once on 401 after attempting a token refresh.

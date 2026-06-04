@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/network/api_client.dart';
-import '../../../../core/network/api_endpoints.dart';
-import 'models/notification_model.dart';
+import 'package:youscout_app/core/network/api_client.dart';
+import 'package:youscout_app/core/network/api_endpoints.dart';
+import 'package:youscout_app/features/notifications/data/models/notification_model.dart';
 
 class NotificationsRepository {
   final Dio _dio;

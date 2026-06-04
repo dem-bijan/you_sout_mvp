@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/providers/auth_provider.dart';
-import '../providers/profile_provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:youscout_app/core/theme/app_colors.dart';
+import 'package:youscout_app/core/providers/auth_provider.dart';
+import 'package:youscout_app/core/router/app_router.dart';
+import 'package:youscout_app/features/auth/data/auth_repository.dart';
+import 'package:youscout_app/features/feed/presentation/screens/video_detail_screen.dart';
+import 'package:youscout_app/features/profile/presentation/providers/profile_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
   final String userId;
@@ -98,9 +102,7 @@ class ProfileScreen extends ConsumerWidget {
               if (isOwnProfile)
                 IconButton(
                   icon: const Icon(Icons.settings_outlined),
-                  onPressed: () {
-                    // TODO: settings screen
-                  },
+                  onPressed: () => _showSettingsSheet(context, ref),
                 ),
             ],
           ),
@@ -215,7 +217,26 @@ class ProfileScreen extends ConsumerWidget {
                         final video = profileState.videos[index];
                         return GestureDetector(
                           onTap: () {
-                            // TODO: open video
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => VideoDetailScreen(
+                                  videoData: {
+                                    'id': video.id,
+                                    'userId': video.userId,
+                                    'userUsername': video.userUsername,
+                                    'userDisplayName': video.userDisplayName,
+                                    'description': video.description,
+                                    'videoUrl': video.videoUrl,
+                                    'thumbnailUrl': video.thumbnailUrl,
+                                    'viewsCount': video.viewsCount,
+                                    'likesCount': video.likesCount,
+                                    'commentsCount': video.commentsCount,
+                                    'hashtags': video.hashtags,
+                                    'isLikedByCurrentUser': video.isLikedByCurrentUser,
+                                  },
+                                ),
+                              ),
+                            );
                           },
                           child: Container(
                             color: AppColors.surfaceCard,
@@ -244,6 +265,89 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ),
         ],
+      ),
+    );
+  }
+
+  void _showSettingsSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.borderDefault,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Settings',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.person_outline, color: AppColors.textSecondary),
+              title: const Text('Edit Profile',
+                  style: TextStyle(color: AppColors.textPrimary)),
+              subtitle: const Text('Change your name, bio, avatar',
+                  style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Edit profile coming soon!'),
+                    backgroundColor: AppColors.primary,
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.notifications_outlined, color: AppColors.textSecondary),
+              title: const Text('Notifications',
+                  style: TextStyle(color: AppColors.textPrimary)),
+              subtitle: const Text('Manage notification preferences',
+                  style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push(Routes.notifications);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.info_outline, color: AppColors.textSecondary),
+              title: const Text('About YouScout',
+                  style: TextStyle(color: AppColors.textPrimary)),
+              subtitle: const Text('Version 1.0.0 — Football Scouting Platform',
+                  style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+              onTap: () => Navigator.pop(ctx),
+            ),
+            const Divider(color: AppColors.borderSubtle),
+            ListTile(
+              leading: const Icon(Icons.logout_rounded, color: AppColors.like),
+              title: const Text('Log Out',
+                  style: TextStyle(color: AppColors.like, fontWeight: FontWeight.w600)),
+              onTap: () {
+                Navigator.pop(ctx);
+                ref.read(authRepositoryProvider).logout();
+                context.go(Routes.login);
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }

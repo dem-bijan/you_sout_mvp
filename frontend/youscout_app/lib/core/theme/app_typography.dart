@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
+import 'package:youscout_app/core/theme/app_colors.dart';
 
 /// YouScout Design System — Typography Scale
 ///

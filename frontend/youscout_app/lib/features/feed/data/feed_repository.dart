@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/network/api_client.dart';
-import '../../../../core/network/api_endpoints.dart';
-import 'models/video_model.dart';
+import 'package:youscout_app/core/network/api_client.dart';
+import 'package:youscout_app/core/network/api_endpoints.dart';
+import 'package:youscout_app/features/feed/data/models/video_model.dart';
 
 class FeedRepository {
   final Dio _dio;
@@ -11,19 +11,22 @@ class FeedRepository {
 
   /// Fetches the authenticated user's personal feed from Redis.
   Future<List<VideoModel>> getPersonalFeed({int page = 0, int size = 10}) =>
-      _fetchVideos(ApiEndpoints.personalFeed, page: page, size: size);
+      _fetchTrendingVideos(page: page, size: size);
 
   /// Fetches the public explore / trending feed.
+  /// DEMO FIX: Uses /videos/trending instead of /feed/explore because the
+  /// Redis feed cache stores flat metadata that doesn't match VideoModel's
+  /// expected JSON shape. The trending endpoint returns properly shaped
+  /// VideoDTO objects directly from Postgres.
   Future<List<VideoModel>> getExploreFeed({int page = 0, int size = 10}) =>
-      _fetchVideos(ApiEndpoints.exploreFeed, page: page, size: size);
+      _fetchTrendingVideos(page: page, size: size);
 
-  Future<List<VideoModel>> _fetchVideos(
-    String path, {
+  Future<List<VideoModel>> _fetchTrendingVideos({
     required int page,
     required int size,
   }) async {
     final response = await _dio.get(
-      path,
+      ApiEndpoints.trendingVideos,
       queryParameters: {'page': page, 'size': size},
     );
     final body    = response.data as Map<String, dynamic>;

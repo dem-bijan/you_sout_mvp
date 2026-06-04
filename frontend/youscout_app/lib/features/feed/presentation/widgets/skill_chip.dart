@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../data/models/video_model.dart';
+import 'package:youscout_app/core/theme/app_colors.dart';
+import 'package:youscout_app/features/feed/data/models/video_model.dart';
 
 /// Pill-shaped chip displaying a football skill tag.
 class SkillChip extends StatelessWidget {

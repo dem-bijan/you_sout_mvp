@@ -1,11 +1,12 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../data/models/video_model.dart';
-import '../providers/feed_provider.dart';
-import 'video_info_panel.dart';
-import 'side_actions.dart';
+import 'package:youscout_app/core/theme/app_colors.dart';
+import 'package:youscout_app/features/feed/data/models/video_model.dart';
+import 'package:youscout_app/features/feed/presentation/providers/feed_provider.dart';
+import 'package:youscout_app/features/feed/presentation/widgets/video_info_panel.dart';
+import 'package:youscout_app/features/feed/presentation/widgets/side_actions.dart';
 
 /// Full-screen video item for the vertical PageView feed.
 ///
@@ -30,6 +31,7 @@ class VideoItem extends ConsumerStatefulWidget {
 class _VideoItemState extends ConsumerState<VideoItem> {
   VideoPlayerController? _controller;
   bool _initialised = false;
+  bool _videoError = false;
   bool _showPlayIcon = false;
 
   @override
@@ -39,15 +41,28 @@ class _VideoItemState extends ConsumerState<VideoItem> {
   }
 
   Future<void> _init() async {
+    // MinIO returns localhost:9000 URLs but Android emulator can't reach localhost
+    String url = widget.video.videoUrl;
+    if (url.contains('localhost:9000')) {
+      url = url.replaceAll('localhost:9000', '10.0.2.2:9000');
+    }
+    if (url.contains('localhost')) {
+      url = url.replaceAll('localhost', '10.0.2.2');
+    }
     final ctrl = VideoPlayerController.networkUrl(
-      Uri.parse(widget.video.videoUrl),
+      Uri.parse(url),
     );
-    await ctrl.initialize();
-    ctrl.setLooping(true);
-    _controller = ctrl;
-    if (mounted) {
-      setState(() => _initialised = true);
-      if (widget.isActive) ctrl.play();
+    try {
+      await ctrl.initialize();
+      ctrl.setLooping(true);
+      _controller = ctrl;
+      if (mounted) {
+        setState(() => _initialised = true);
+        if (widget.isActive) ctrl.play();
+      }
+    } catch (e) {
+      // Video failed to load — show beautiful demo placeholder
+      if (mounted) setState(() => _videoError = true);
     }
   }
 
@@ -88,7 +103,7 @@ class _VideoItemState extends ConsumerState<VideoItem> {
     final size = MediaQuery.of(context).size;
 
     return GestureDetector(
-      onTap: _togglePlayback,
+      onTap: _initialised ? _togglePlayback : null,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -102,6 +117,9 @@ class _VideoItemState extends ConsumerState<VideoItem> {
                 child: VideoPlayer(_controller!),
               ),
             )
+          else if (_videoError)
+            // Beautiful fallback when video can't play
+            _VideoFallback(video: widget.video, index: widget.index)
           else
             // Thumbnail or shimmer while loading
             widget.video.thumbnailUrl != null
@@ -140,7 +158,7 @@ class _VideoItemState extends ConsumerState<VideoItem> {
                 child: Container(
                   width: 60,
                   height: 60,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.black45,
                     shape: BoxShape.circle,
                   ),
@@ -185,6 +203,134 @@ class _VideoItemState extends ConsumerState<VideoItem> {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Beautiful fallback shown when video can't play.
+/// Shows a dynamic gradient background with sport-themed visuals.
+class _VideoFallback extends StatelessWidget {
+  final VideoModel video;
+  final int index;
+
+  const _VideoFallback({required this.video, required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    // Different gradient for each video to make the feed look varied
+    final gradients = [
+      [const Color(0xFF0D1B2A), const Color(0xFF1B2838), const Color(0xFF0A4DA2)],
+      [const Color(0xFF1A0A2E), const Color(0xFF16213E), const Color(0xFF533483)],
+      [const Color(0xFF0B0E11), const Color(0xFF1D3557), const Color(0xFF457B9D)],
+    ];
+    final colors = gradients[index % gradients.length];
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: colors,
+        ),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Decorative circles
+          Positioned(
+            top: -40,
+            right: -40,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primary.withValues(alpha: 0.08),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 120,
+            left: -60,
+            child: Container(
+              width: 160,
+              height: 160,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.secondary.withValues(alpha: 0.06),
+              ),
+            ),
+          ),
+          // Center content
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Sport icon
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary.withValues(alpha: 0.3),
+                        AppColors.secondary.withValues(alpha: 0.2),
+                      ],
+                    ),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.4),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.sports_soccer_rounded,
+                    color: AppColors.primary,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Video title/description preview
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 48),
+                  child: Text(
+                    video.description ?? 'Football Highlights',
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.8),
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Stats row
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.visibility_rounded,
+                        color: Colors.white38, size: 14),
+                    const SizedBox(width: 4),
+                    Text('${video.viewsCount} views',
+                        style: const TextStyle(
+                            color: Colors.white38, fontSize: 12)),
+                    const SizedBox(width: 16),
+                    const Icon(Icons.favorite_rounded,
+                        color: Colors.white38, size: 14),
+                    const SizedBox(width: 4),
+                    Text('${video.likesCount} likes',
+                        style: const TextStyle(
+                            color: Colors.white38, fontSize: 12)),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../storage/secure_storage.dart';
+import 'package:youscout_app/core/storage/secure_storage.dart';
 
 /// Represents the authentication state of the app.
 sealed class AuthState {
@@ -31,10 +31,15 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<AuthState> _checkStoredTokens() async {
-    final userId = await SecureStorage.getUserId();
-    final token  = await SecureStorage.getAccessToken();
-    if (userId != null && token != null) {
-      return AuthStateAuthenticated(userId);
+    try {
+      final userId = await SecureStorage.getUserId().timeout(const Duration(seconds: 2));
+      final token  = await SecureStorage.getAccessToken().timeout(const Duration(seconds: 2));
+      if (userId != null && token != null) {
+        return AuthStateAuthenticated(userId);
+      }
+    } catch (e) {
+      // If it times out or fails (e.g. Android Keystore issues), fall back to login.
+      print('Auth check failed or timed out: $e');
     }
     return const AuthStateUnauthenticated();
   }

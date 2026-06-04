@@ -105,7 +105,7 @@ open http://localhost:8761
 curl http://localhost:8080/actuator/health
 
 # MinIO console
-open http://localhost:9001  # user: minioadmin / pass: minioadmin
+open http://localhost:9001  # user: youscout_minio / pass: youscout_minio_secret
 ```
 
 ### 6. Lancer le frontend Flutter
@@ -127,10 +127,19 @@ you_sout_mvp/
 ├── docs/
 │   └── adr/                          # Architecture Decision Records
 │       ├── ADR-001-microservices-architecture.md
-│       ├── ADR-002-kafka-async-communication.md
-│       ├── ADR-003-jwt-gateway-auth.md
-│       ├── ADR-004-redis-feed-fanout.md
-│       └── ADR-005-flutter-riverpod.md
+│       ├── ADR-002-ddd-bounded-contexts.md
+│       ├── ADR-003-api-gateway.md
+│       ├── ADR-004-kafka-async-communication.md
+│       ├── ADR-005-polyglot-persistence.md
+│       ├── ADR-006-circuit-breaker.md
+│       ├── ADR-007-cqrs-feed.md
+│       ├── ADR-008-service-discovery.md
+│       ├── ADR-009-jwt-oauth2.md
+│       ├── ADR-010-minio-storage.md
+│       ├── ADR-011-docker-compose.md
+│       ├── ADR-012-flutter-frontend.md
+│       ├── ADR-013-saga-pattern.md
+│       └── ADR-014-observability-stack.md
 ├── infrastructure/
 │   ├── docker-compose.yml            # Orchestration complète
 │   ├── generate-keys.sh              # Génération RSA
@@ -172,10 +181,12 @@ you_sout_mvp/
 
 | Topic | Producteur | Consommateur(s) |
 |-------|-----------|-----------------|
-| `youscout.video.published` | video-service | feed-service |
-| `youscout.video.liked` | video-service | notification-service |
-| `youscout.comment.created` | comment-service | notification-service |
-| `youscout.user.followed` | social-service | notification-service, feed-service |
+| `youscout.video.published` | video-service | feed-service, notification-service, admin-service |
+| `youscout.comment.created` | comment-service | notification-service, admin-service |
+| `youscout.like.added` | social-service | notification-service, video-service |
+| `youscout.user.followed` | social-service | feed-service, notification-service |
+| `youscout.video.reported` | video-service | admin-service |
+| `youscout.user.blocked` | social-service | feed-service, notification-service |
 
 ---
 
@@ -185,11 +196,20 @@ Les décisions architecturales sont documentées dans [`docs/adr/`](docs/adr/) :
 
 | ADR | Sujet |
 |-----|-------|
-| [ADR-001](docs/adr/ADR-001-microservices-architecture.md) | Architecture microservices |
-| [ADR-002](docs/adr/ADR-002-kafka-async-communication.md) | Communication asynchrone via Kafka |
-| [ADR-003](docs/adr/ADR-003-jwt-gateway-auth.md) | Authentification JWT centralisée |
-| [ADR-004](docs/adr/ADR-004-redis-feed-fanout.md) | Fan-out sur Redis pour le feed |
-| [ADR-005](docs/adr/ADR-005-flutter-riverpod.md) | Flutter avec Riverpod |
+| [ADR-001](docs/adr/ADR-001-microservices-architecture.md) | Adopt Microservices as the Primary Architecture Style |
+| [ADR-002](docs/adr/ADR-002-ddd-bounded-contexts.md) | Decompose Services Using Domain-Driven Design Bounded Contexts |
+| [ADR-003](docs/adr/ADR-003-api-gateway.md) | API Gateway as Single Entry Point |
+| [ADR-004](docs/adr/ADR-004-kafka-async-communication.md) | Apache Kafka for Asynchronous Inter-Service Communication |
+| [ADR-005](docs/adr/ADR-005-polyglot-persistence.md) | Database-Per-Service with Polyglot Persistence |
+| [ADR-006](docs/adr/ADR-006-circuit-breaker.md) | Circuit Breaker Pattern for Partial Failure Handling |
+| [ADR-007](docs/adr/ADR-007-cqrs-feed.md) | CQRS Pattern for Feed Service |
+| [ADR-008](docs/adr/ADR-008-service-discovery.md) | Service Discovery via Netflix Eureka |
+| [ADR-009](docs/adr/ADR-009-jwt-oauth2.md) | JWT + OAuth2 Authentication Strategy |
+| [ADR-010](docs/adr/ADR-010-minio-storage.md) | MinIO for Video Object Storage |
+| [ADR-011](docs/adr/ADR-011-docker-compose.md) | Docker + Docker Compose for Containerization |
+| [ADR-012](docs/adr/ADR-012-flutter-frontend.md) | Flutter for Cross-Platform Mobile Frontend |
+| [ADR-013](docs/adr/ADR-013-saga-pattern.md) | Saga Pattern for Distributed Transactions |
+| [ADR-014](docs/adr/ADR-014-observability-stack.md) | Centralized Observability Stack |
 
 ---
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/router/app_router.dart';
-import '../data/auth_repository.dart';
+import 'package:youscout_app/core/theme/app_colors.dart';
+import 'package:youscout_app/core/router/app_router.dart';
+import 'package:youscout_app/features/auth/data/auth_repository.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});

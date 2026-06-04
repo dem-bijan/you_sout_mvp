@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/upload_repository.dart';
-import '../../feed/data/models/video_model.dart';
+import 'package:youscout_app/features/upload/data/upload_repository.dart';
+import 'package:youscout_app/features/feed/data/models/video_model.dart';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 

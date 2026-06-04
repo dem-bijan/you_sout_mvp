@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../providers/auth_provider.dart';
-import '../../features/auth/presentation/screens/login_screen.dart';
-import '../../features/auth/presentation/screens/register_screen.dart';
-import '../../features/auth/presentation/screens/splash_screen.dart';
-import '../../features/auth/presentation/screens/onboarding_screen.dart';
-import '../../features/feed/presentation/screens/home_screen.dart';
-import '../../features/upload/presentation/screens/upload_screen.dart';
-import '../../features/profile/presentation/screens/profile_screen.dart';
-import '../../features/notifications/presentation/screens/notifications_screen.dart';
-import '../../features/discover/presentation/screens/discover_screen.dart';
-import '../../shared/widgets/bottom_nav_bar.dart';
+import 'package:youscout_app/core/providers/auth_provider.dart';
+import 'package:youscout_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:youscout_app/features/auth/presentation/screens/register_screen.dart';
+import 'package:youscout_app/features/auth/presentation/screens/splash_screen.dart';
+import 'package:youscout_app/features/auth/presentation/screens/onboarding_screen.dart';
+import 'package:youscout_app/features/feed/presentation/screens/home_screen.dart';
+import 'package:youscout_app/features/upload/presentation/screens/upload_screen.dart';
+import 'package:youscout_app/features/profile/presentation/screens/profile_screen.dart';
+import 'package:youscout_app/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:youscout_app/features/discover/presentation/screens/discover_screen.dart';
+import 'package:youscout_app/shared/widgets/bottom_nav_bar.dart';
 
 // ── Route names (use these everywhere instead of bare strings) ───────────────
 
@@ -45,21 +45,16 @@ final routerProvider = Provider<GoRouter>((ref) {
   final authListenable = _AuthStateListenable(ref);
 
   return GoRouter(
-    initialLocation: Routes.splash,
+    initialLocation: Routes.login,
     refreshListenable: authListenable,
     redirect: (context, state) {
       final authState = ref.read(authProvider);
-
-      if (authState is AsyncLoading) {
-        return Routes.splash;
-      }
 
       final auth = authState.valueOrNull;
       final isAuthenticated = auth is AuthStateAuthenticated;
       final isOnAuthPage = state.matchedLocation == Routes.login ||
           state.matchedLocation == Routes.register ||
-          state.matchedLocation == Routes.onboarding ||
-          state.matchedLocation == Routes.splash;
+          state.matchedLocation == Routes.onboarding;
 
       if (!isAuthenticated && !isOnAuthPage) return Routes.login;
       if (isAuthenticated && isOnAuthPage) return Routes.home;
@@ -67,10 +62,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       // ── Auth routes (no bottom nav) ────────────────────────────────────
-      GoRoute(
-        path: Routes.splash,
-        builder: (_, __) => const SplashScreen(),
-      ),
       GoRoute(
         path: Routes.onboarding,
         builder: (_, __) => const OnboardingScreen(),

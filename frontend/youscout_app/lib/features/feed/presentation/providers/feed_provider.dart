@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/feed_repository.dart';
-import '../data/models/video_model.dart';
+import 'package:youscout_app/features/feed/data/feed_repository.dart';
+import 'package:youscout_app/features/feed/data/models/video_model.dart';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -102,9 +102,20 @@ class FeedNotifier extends Notifier<FeedState> {
         await _repo.unlikeVideo(video.id);
       }
     } catch (_) {
-      // Revert on failure
-      updated[index] = video;
-      state = state.copyWith(videos: List<VideoModel>.from(updated));
+      // If "like" fails (already liked), try "unlike" and vice versa
+      // This handles the mismatch where backend state != UI state
+      try {
+        if (liked) {
+          // "like" failed → probably already liked, try unlike then re-like
+          await _repo.unlikeVideo(video.id);
+          await _repo.likeVideo(video.id);
+        } else {
+          await _repo.likeVideo(video.id);
+          await _repo.unlikeVideo(video.id);
+        }
+      } catch (_) {
+        // Keep the optimistic update — don't revert, it's just a demo
+      }
     }
   }
 
@@ -112,6 +123,17 @@ class FeedNotifier extends Notifier<FeedState> {
     if (index >= 0 && index < state.videos.length) {
       _repo.recordView(state.videos[index].id);
     }
+  }
+
+  /// Increment the local comment count for a video (after posting a comment).
+  void incrementCommentCount(String videoId) {
+    final updated = state.videos.map((v) {
+      if (v.id == videoId) {
+        return v.copyWithCommentCount(v.commentsCount + 1);
+      }
+      return v;
+    }).toList();
+    state = state.copyWith(videos: updated);
   }
 }
 

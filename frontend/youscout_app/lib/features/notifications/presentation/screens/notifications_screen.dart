@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import '../../../../core/theme/app_colors.dart';
-import '../providers/notifications_provider.dart';
-import '../../data/models/notification_model.dart';
+import 'package:youscout_app/core/theme/app_colors.dart';
+import 'package:youscout_app/features/notifications/presentation/providers/notifications_provider.dart';
+import 'package:youscout_app/features/notifications/data/models/notification_model.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});

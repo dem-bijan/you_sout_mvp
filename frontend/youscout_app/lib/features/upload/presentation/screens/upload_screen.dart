@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../providers/upload_provider.dart';
+import 'package:youscout_app/core/theme/app_colors.dart';
+import 'package:youscout_app/features/upload/presentation/providers/upload_provider.dart';
 
 class UploadScreen extends ConsumerStatefulWidget {
   const UploadScreen({super.key});
@@ -25,9 +25,59 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     super.dispose();
   }
 
-  Future<void> _pickVideo() async {
+  Future<void> _pickVideo([ImageSource? source]) async {
+    if (source == null) {
+      // Show a choice dialog
+      source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        backgroundColor: AppColors.surfaceElevated,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (ctx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.borderDefault,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('Select Video Source',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary)),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const Icon(Icons.videocam_rounded, color: AppColors.primary),
+                title: const Text('Record Video',
+                    style: TextStyle(color: AppColors.textPrimary)),
+                subtitle: const Text('Use camera to record now',
+                    style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+                onTap: () => Navigator.pop(ctx, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_rounded, color: AppColors.secondary),
+                title: const Text('Choose from Gallery',
+                    style: TextStyle(color: AppColors.textPrimary)),
+                subtitle: const Text('Select an existing video',
+                    style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      );
+      if (source == null) return;
+    }
     final xfile = await _picker.pickVideo(
-      source: ImageSource.gallery,
+      source: source,
       maxDuration: const Duration(minutes: 3),
     );
     if (xfile != null && mounted) {

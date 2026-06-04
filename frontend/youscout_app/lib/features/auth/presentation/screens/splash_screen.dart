@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
+import 'package:youscout_app/core/theme/app_colors.dart';
 
 /// Animated splash screen shown during cold-start while [AuthNotifier] checks
 /// stored tokens. GoRouter redirect navigates away once auth state resolves.
@@ -112,23 +112,3 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-/// A simple wrapper because [AnimatedBuilder] was removed in some Flutter versions.
-/// Using the standard [AnimatedWidget] approach instead.
-class AnimatedBuilder extends AnimatedWidget {
-  final Widget? child;
-  final Widget Function(BuildContext context, Widget? child) builder;
-
-  const AnimatedBuilder({
-    super.key,
-    required super.listenable,
-    required this.builder,
-    this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return builder(context, child);
-  }
-
-  Animation get animation => listenable as Animation;
-}

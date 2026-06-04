@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/notifications_repository.dart';
-import '../data/models/notification_model.dart';
+import 'package:youscout_app/features/notifications/data/notifications_repository.dart';
+import 'package:youscout_app/features/notifications/data/models/notification_model.dart';
 
 class NotificationsState {
   final List<NotificationModel> items;

@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/network/api_endpoints.dart';
-import '../../../core/providers/auth_provider.dart';
-import 'models/user_model.dart';
+import 'package:youscout_app/core/network/api_client.dart';
+import 'package:youscout_app/core/network/api_endpoints.dart';
+import 'package:youscout_app/core/providers/auth_provider.dart';
+import 'package:youscout_app/features/auth/data/models/user_model.dart';
 
 /// Result type so callers don't need to catch exceptions directly.
 sealed class AuthResult<T> {

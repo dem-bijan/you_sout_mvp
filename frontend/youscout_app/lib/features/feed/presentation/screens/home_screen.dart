@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../providers/feed_provider.dart';
-import '../widgets/video_item.dart';
+import 'package:youscout_app/core/theme/app_colors.dart';
+import 'package:youscout_app/features/feed/presentation/providers/feed_provider.dart';
+import 'package:youscout_app/features/feed/presentation/widgets/video_item.dart';
 
 /// The main feed screen — full-screen vertical PageView (TikTok-style).
 ///
@@ -19,6 +19,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _pageController = PageController();
   int _currentIndex = 0;
+  bool _isForYouTab = true;
 
   @override
   void initState() {
@@ -44,6 +45,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (page >= total - 3) {
       ref.read(feedProvider.notifier).loadMore();
     }
+  }
+
+  void _switchTab(bool forYou) {
+    if (_isForYouTab == forYou) return;
+    setState(() => _isForYouTab = forYou);
+    // Reset page controller
+    _currentIndex = 0;
+    if (_pageController.hasClients) {
+      _pageController.jumpToPage(0);
+    }
+    // Reload feed — both tabs use trending for demo
+    ref.read(feedProvider.notifier).loadFeed();
   }
 
   @override
@@ -110,63 +123,101 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             GestureDetector(
-              // TODO: swap to personal feed tab
-              child: const Text(
-                'For You',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
+              onTap: () => _switchTab(true),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'For You',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: _isForYouTab ? FontWeight.w700 : FontWeight.w400,
+                      color: _isForYouTab ? Colors.white : Colors.white54,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    width: 24,
+                    height: 2.5,
+                    decoration: BoxDecoration(
+                      color: _isForYouTab ? AppColors.primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 20),
+            const SizedBox(width: 24),
             GestureDetector(
-              // TODO: swap to following tab
-              child: Text(
-                'Following',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white.withOpacity(0.5),
-                ),
+              onTap: () => _switchTab(false),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Following',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: !_isForYouTab ? FontWeight.w700 : FontWeight.w400,
+                      color: !_isForYouTab ? Colors.white : Colors.white54,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    width: 24,
+                    height: 2.5,
+                    decoration: BoxDecoration(
+                      color: !_isForYouTab ? AppColors.primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search_rounded, color: Colors.white),
-            onPressed: () {
-              // TODO: navigate to discover
-            },
-          ),
-        ],
       ),
-      body: PageView.builder(
-        controller: _pageController,
-        scrollDirection: Axis.vertical,
-        itemCount: videos.length + (feedState.isLoadingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          // Loading spinner at the bottom while fetching more
-          if (index >= videos.length) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(
-                    color: AppColors.primary, strokeWidth: 2),
+      body: videos.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.videocam_off_outlined,
+                      color: AppColors.textTertiary, size: 48),
+                  const SizedBox(height: 12),
+                  Text(
+                    _isForYouTab
+                        ? 'No videos yet'
+                        : 'Follow users to see their videos here',
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 14),
+                  ),
+                ],
               ),
-            );
-          }
+            )
+          : PageView.builder(
+              controller: _pageController,
+              scrollDirection: Axis.vertical,
+              itemCount: videos.length + (feedState.isLoadingMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                // Loading spinner at the bottom while fetching more
+                if (index >= videos.length) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator(
+                          color: AppColors.primary, strokeWidth: 2),
+                    ),
+                  );
+                }
 
-          return VideoItem(
-            key: ValueKey(videos[index].id),
-            video: videos[index],
-            index: index,
-            isActive: index == _currentIndex,
-          );
-        },
-      ),
+                return VideoItem(
+                  key: ValueKey(videos[index].id),
+                  video: videos[index],
+                  index: index,
+                  isActive: index == _currentIndex,
+                );
+              },
+            ),
     );
   }
 }

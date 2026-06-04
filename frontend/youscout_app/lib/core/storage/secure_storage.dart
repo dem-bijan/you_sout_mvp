@@ -1,12 +1,11 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Wraps flutter_secure_storage for JWT token persistence.
+/// DEMO FIX: Uses in-memory storage to prevent Android Emulator Keystore deadlocks.
 class SecureStorage {
   SecureStorage._();
 
-  static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  );
+  static final Map<String, String> _memoryStorage = {};
 
   static const _keyAccessToken  = 'access_token';
   static const _keyRefreshToken = 'refresh_token';
@@ -17,16 +16,15 @@ class SecureStorage {
     required String refreshToken,
     required String userId,
   }) async {
-    await Future.wait([
-      _storage.write(key: _keyAccessToken,  value: accessToken),
-      _storage.write(key: _keyRefreshToken, value: refreshToken),
-      _storage.write(key: _keyUserId,       value: userId),
-    ]);
+    _memoryStorage[_keyAccessToken] = accessToken;
+    _memoryStorage[_keyRefreshToken] = refreshToken;
+    _memoryStorage[_keyUserId] = userId;
   }
 
-  static Future<String?> getAccessToken()  => _storage.read(key: _keyAccessToken);
-  static Future<String?> getRefreshToken() => _storage.read(key: _keyRefreshToken);
-  static Future<String?> getUserId()       => _storage.read(key: _keyUserId);
+  static Future<String?> getAccessToken() async => _memoryStorage[_keyAccessToken];
+  static Future<String?> getRefreshToken() async => _memoryStorage[_keyRefreshToken];
+  static Future<String?> getUserId() async => _memoryStorage[_keyUserId];
 
-  static Future<void> clear() => _storage.deleteAll();
+  static Future<void> clear() async => _memoryStorage.clear();
 }
+

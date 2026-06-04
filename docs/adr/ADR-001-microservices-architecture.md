@@ -1,43 +1,29 @@
-# ADR-001 : Architecture microservices
+# ADR-001: Adopt Microservices as the Primary Architecture Style
 
-**Date** : 2026-05-31  
-**Statut** : Accepté  
-**Décideurs** : Équipe YouScout
+**Status:** Accepted
 
-## Contexte
+## Context
+YouScout is a greenfield video-centric social platform targeting millions of global users through phased geographic expansion. The five highest-priority architecture characteristics identified through domain analysis are: Scalability, Availability, Performance, Elasticity, and Fault Tolerance. An analysis of all eight candidate styles (M1–M3, D1–D4) against these characteristics conclusively shows that only the Microservices style achieves maximum ratings across all five. The project budget is unconstrained, which allows absorbing the higher operational complexity inherent to microservices. The team will be organized into cross-functional groups per business domain (Conway's Law), which naturally maps to per-service ownership.
 
-YouScout est une plateforme sociale de type TikTok dédiée au football. Elle doit gérer des flux vidéo lourds, du temps réel (feed, notifications), et une croissance potentiellement rapide de la base d'utilisateurs.
+## Decision
+Adopt **Microservices Architecture (D4)** as the primary architectural style, complemented by **Event-Driven Architecture (D3)** patterns — specifically Apache Kafka — for asynchronous inter-service communication. Services communicate synchronously via REST/HTTP for operations requiring immediate responses, and asynchronously via Kafka for eventually-consistent operations (feed updates, notifications, analytics).
 
-## Décision
+## Consequences
+- ✅ Independent horizontal scaling per service
+- ✅ Fault isolation — failures are contained to a single bounded context
+- ✅ Technology freedom — each service selects its optimal stack
+- ✅ Independent deployability — CI/CD pipeline per service
+- ✅ Team autonomy — each team owns a complete, deployable service
+- ❌ Distributed system complexity requires dedicated operational tooling (service discovery, distributed tracing, centralized config)
+- ❌ No cross-service ACID transactions — requires Saga pattern (see ADR-013)
+- ❌ Network latency between services — requires Circuit Breaker pattern (see ADR-006)
 
-Adopter une **architecture microservices** avec les services suivants :
+## Governance
+- Every new service requires architectural review before creation
+- No service may directly access another service's database
+- All services must expose `/actuator/health` and `/actuator/metrics` endpoints
+- All synchronous inter-service calls must implement a circuit breaker
+- Architecture deviations must be captured in a new or superseding ADR
 
-| Service | Responsabilité |
-|---------|---------------|
-| `user-service` | Authentification, profils, gestion des tokens |
-| `video-service` | Upload, stockage (MinIO), métadonnées vidéo |
-| `feed-service` | Agrégation du fil (fan-out sur Redis) |
-| `comment-service` | CRUD des commentaires |
-| `social-service` | Suivi (follow/unfollow) |
-| `notification-service` | Notifications en réponse aux événements Kafka |
-| `admin-service` | Modération (stub MVP) |
-| `api-gateway` | Point d'entrée unique, vérification JWT centralisée |
-| `eureka-server` | Découverte de services |
-
-## Justification
-
-- **Scalabilité indépendante** : le service vidéo pourra être scalé horizontalement sans impacter l'authentification.
-- **Isolation des fautes** : un crash du service de commentaires ne fait pas tomber le feed.
-- **Déploiement indépendant** : chaque équipe pourra déployer son service séparément.
-- **Séparation des bases de données** : chaque service possède sa propre base PostgreSQL, éliminant les couplages au niveau données.
-
-## Conséquences
-
-- Complexité opérationnelle accrue (Docker Compose pour le dev, orchestrateur en production).
-- Nécessité d'un mécanisme de communication inter-services (Kafka choisi, voir ADR-002).
-- Traçabilité distribuée à mettre en place à terme (Spring Cloud Sleuth / Zipkin).
-
-## Alternatives rejetées
-
-- **Monolithe modulaire** : plus simple, mais ne permet pas le scaling indépendant du service vidéo.
-- **Serverless (Cloud Functions)** : trop de cold-starts pour une expérience de feed temps réel.
+## Notes
+References: Lewis & Fowler (2014), Chris Richardson *Microservices Patterns* (2018), Prof. ALLAKI ASEDS slides 2025/2026.

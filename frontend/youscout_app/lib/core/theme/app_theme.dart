@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
+import 'package:youscout_app/core/theme/app_colors.dart';
 
 /// YouScout Dark Theme
 ///
@@ -38,7 +38,7 @@ ThemeData get darkTheme => ThemeData(
         selectedLabelStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
         unselectedLabelStyle: TextStyle(fontSize: 10),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.surfaceCard,
         elevation: 0,
         shape: RoundedRectangleBorder(

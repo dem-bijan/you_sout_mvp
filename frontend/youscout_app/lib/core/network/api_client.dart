@@ -1,13 +1,22 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'auth_interceptor.dart';
+import 'package:youscout_app/core/network/auth_interceptor.dart';
+import 'package:flutter/foundation.dart';
 
 /// Central Dio HTTP client.
 ///
 /// All requests go through the API Gateway at [baseUrl].
 /// The path must include the `/api` prefix (e.g. `/api/users/login`).
 class ApiClient {
-  static const String baseUrl = 'http://localhost:8080/api';
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:8080/api';
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8080/api';
+    } else {
+      return 'http://localhost:8080/api';
+    }
+  }
 
   late final Dio _dio;
 

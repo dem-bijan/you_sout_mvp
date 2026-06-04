@@ -85,6 +85,27 @@ class VideoModel {
         isLikedByCurrentUser: liked,
         createdAt: createdAt,
       );
+
+  /// Return a copy with updated comment count.
+  VideoModel copyWithCommentCount(int newCount) => VideoModel(
+        id: id,
+        userId: userId,
+        userUsername: userUsername,
+        userDisplayName: userDisplayName,
+        userAvatarUrl: userAvatarUrl,
+        title: title,
+        description: description,
+        videoUrl: videoUrl,
+        thumbnailUrl: thumbnailUrl,
+        durationSeconds: durationSeconds,
+        viewsCount: viewsCount,
+        likesCount: likesCount,
+        commentsCount: newCount,
+        skills: skills,
+        hashtags: hashtags,
+        isLikedByCurrentUser: isLikedByCurrentUser,
+        createdAt: createdAt,
+      );
 }
 
 class SkillModel {
